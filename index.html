@@ -1,183 +1,546 @@
-<!doctype html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>CEA – Simulado REMOTO (single-file)</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CEA – Simulado (looping) + Adicionar/Revisão + Exportar/Importar</title>
 <style>
-  :root{
-    --bg:#0b1220;--panel:#111827;--txt:#e5e7eb;--muted:#cbd5e1;
-    --accent:#60a5fa;--border:#24324a;--good:#16a34a;--bad:#ef4444;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;background:var(--bg);color:var(--txt);font:500 16px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
-  .wrap{max-width:980px;margin:0 auto;padding:16px}
-  h1{font-size:22px;margin:0 0 8px}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
-  .bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
-  button{background:#0f1b33;color:var(--txt);border:1px solid var(--border);padding:9px 12px;border-radius:10px;cursor:pointer}
-  button:hover{border-color:#334155}
-  .pill{display:inline-block;padding:4px 8px;border:1px solid var(--border);border-radius:999px;color:var(--muted);font-size:12px}
-  .card{background:#0b1220;border:1px solid var(--border);border-radius:12px;padding:12px}
-  .qid{font-size:12px;color:var(--muted);margin-bottom:6px}
-  .qtext{white-space:pre-wrap}
-  .opt{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:start;margin:8px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:#0b1220;cursor:pointer;text-align:left}
-  .opt:hover{border-color:#334155}
-  .opt.correct{border-color:rgba(22,163,74,.6);background:#0c1f17}
-  .opt.wrong{border-color:rgba(239,68,68,.6);background:#1b1216}
-  .opt input{margin-top:2px}
-  .opt .letter{font-weight:700;min-width:24px;display:inline-block}
-  .opt .txt{display:block}
-  .progress{height:8px;background:#1f2937;border-radius:6px;overflow:hidden}
-  .barProg{height:8px;background:linear-gradient(90deg,#2563eb,#60a5fa);width:0%}
+:root{
+  --bg:#0b1220; --panel:#111827; --txt:#e5e7eb; --muted:#cbd5e1;
+  --accent:#60a5fa; --border:#24324a; --good:#16a34a; --bad:#ef4444;
+}
+*{box-sizing:border-box} body{background:#0b1220;color:var(--txt);font:16px/1.45 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+.wrap{max-width:1000px;margin:24px auto;padding:16px;border:1px solid #1f2937;border-radius:14px;background:#0c1324}
+h1{font-size:26px;margin:0 0 14px} .small{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:10px;margin-bottom:12px}
+.btn{background:#0f1b33;border:1px solid var(--border);color:var(--txt);padding:8px 12px;border-radius:10px;cursor:pointer}
+.btn:hover{border-color:#334155}
+.row{display:flex;gap:10px;align-items:center}
+.counter{display:flex;gap:16px;margin:8px 0}
+.progress{height:8px;background:#1f2937;border-radius:6px;overflow:hidden}
+.bar{height:8px;background:linear-gradient(90deg,#2563eb,#60a5fa);width:0%}
+.card{border:1px solid var(--border);border-radius:12px;background:#0b1220;padding:12px}
+.qid{font-size:12px;color:var(--muted);margin-bottom:6px}
+.qtext{white-space:pre-wrap}
+#panel-sim, #panel-add, #panel-io{display:none}
+.tab[aria-current="true"]{outline:2px solid #334155}
+/* Alternativas: rádio | A) | texto */
+.opt{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:start;margin:8px 0;padding:12px;border:1px solid var(--border);border-radius:10px;background:#0b1220;cursor:pointer;text-align:left}
+.opt:hover{border-color:#334155}
+.opt.correct{border-color:rgba(22,163,74,.6);background:#0c1f17}
+.opt.wrong{border-color:rgba(239,68,68,.6);background:#1b1216}
+.opt input{margin-top:2px}
+.opt .letter{font-weight:700;min-width:24px;display:inline-block}
+.opt .txt{display:block}
+/* formulário */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+textarea,input[type="text"],select{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:#0b1220;color:var(--txt)}
+label{font-size:13px;color:var(--muted);display:block;margin:6px 0}
+.divider{height:1px;background:#253048;margin:12px 0}
+.list{margin-top:8px}
+.rowline{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border:1px solid var(--border);border-radius:10px;background:#0b1220;margin:6px 0}
+.rowline .meta{font-size:12px;color:#cbd5e1}
+.inactive{opacity:.55;filter:saturate(.6)}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>Simulado CEA — Versão REMOTA (single-file)</h1>
-  <div class="sub">Roda em qualquer lugar (iPhone/iPad/Android/PC). Não depende de armazenamento do navegador. As questões já estão <b>embutidas</b>.</div>
+  <h1>Simulado – Questões que você errou (looping)</h1>
+  <div class="small">Selecione a alternativa. O simulado embaralha a ordem e repete somente as que você errar até acertar todas.</div>
 
-  <div class="bar">
-    <button id="btnPrev">◀︎ Anterior</button>
-    <button id="btnNext">Próxima ▶︎</button>
-    <button id="btnReveal">Revelar gabarito</button>
-    <button id="btnMarkWrong">Errei (revisar depois)</button>
-    <button id="btnReview">Revisar erradas</button>
-    <span class="pill" id="pillInfo">0/0</span>
-  </div>
-  <div class="progress"><div class="barProg" id="bar"></div></div>
-
-  <div class="card" id="qCard" style="margin-top:12px">
-    <div class="qid" id="qid">Q</div>
-    <div class="qtext" id="qtext">Carregando…</div>
-    <div id="opts" style="margin-top:8px"></div>
-    <div id="status" class="sub" style="margin-top:8px"></div>
+  <div class="tabs">
+    <button class="btn tab" data-tab="sim" aria-current="true">Simulado</button>
+    <button class="btn tab" data-tab="add">Adicionar/ Revisão</button>
+    <button class="btn tab" data-tab="io">Exportar/ Importar</button>
   </div>
 
-  <div class="sub" style="margin-top:10px">Dica: adicione esta página aos favoritos ou à tela inicial. Para estudar <b>remotamente</b>, publique este arquivo em qualquer hospedagem estática (GitHub Pages, Netlify, Replit, CodePen/Full Page) e use o link.</div>
+  <div class="counter small" id="cnt">
+    <div><span id="cQ">0/0</span></div>
+    <div><span id="cS">Pontuação: 0</span></div>
+    <div><span id="cT">Tentativas: 0</span></div>
+  </div>
+
+  <div class="row small" style="margin-bottom:6px">
+    <input id="rev" type="checkbox"><label for="rev">Modo Revisão (prévia literal)</label>
+  </div>
+  <div class="progress"><div class="bar" id="bar"></div></div>
+
+  <!-- ====== SIMULADO ====== -->
+  <div id="panel-sim" style="display:block">
+    <div class="card">
+      <div class="qid" id="qid"></div>
+      <div class="qtext" id="qtext"></div>
+      <div id="opts" style="margin-top:8px"></div>
+    </div>
+  </div>
+
+  <!-- ====== ADICIONAR / REVISÃO ====== -->
+  <div id="panel-add">
+    <div class="grid">
+      <div class="card">
+        <div class="small">Formulário</div>
+        <label>ID</label><input id="f-id" type="text" placeholder="Q54">
+        <label>Enunciado (literal)</label><textarea id="f-text" rows="7"></textarea>
+        <label>Explicação / Observação (opcional)</label><textarea id="f-explain" rows="5"></textarea>
+      </div>
+      <div class="card">
+        <div class="small">Alternativas</div>
+        <label>A)</label><textarea id="f-A" rows="2"></textarea>
+        <label>B)</label><textarea id="f-B" rows="2"></textarea>
+        <label>C)</label><textarea id="f-C" rows="2"></textarea>
+        <label>D)</label><textarea id="f-D" rows="2"></textarea>
+        <label>Gabarito</label>
+        <select id="f-ans"><option>A</option><option>B</option><option>C</option><option>D</option></select>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="previewBtn">Pré-visualizar</button>
+          <button class="btn" id="approveBtn">Aprovar & Inserir</button>
+          <button class="btn" id="clearBtn">Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="preview" style="display:none;margin-top:12px">
+      <div class="divider"></div>
+      <div class="small">Prévia literal</div>
+      <div class="card" id="previewBox"></div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="small">Questões carregadas</div>
+    <div class="row" style="margin:6px 0">
+      <button class="btn" id="enableAllBtn">Ativar todas</button>
+      <button class="btn" id="disableAllBtn">Desativar todas</button>
+      <span class="small"> (apenas as <b>ativas</b> entram no simulado)</span>
+    </div>
+    <div id="bankList" class="list"></div>
+  </div>
+
+  <!-- ====== EXPORTAR / IMPORTAR ====== -->
+  <div id="panel-io">
+    <div class="grid">
+      <div class="card">
+        <div class="small">Exportar (JSON das questões atuais)</div>
+        <div class="row" style="margin:8px 0">
+          <button class="btn" id="exportBtn">Copiar JSON</button>
+          <button class="btn" id="downloadBtn">Baixar .json</button>
+          <button class="btn" id="saveLocalBtn">Salvar no navegador</button>
+        </div>
+        <textarea id="exportArea" readonly style="min-height:160px"></textarea>
+      </div>
+      <div class="card">
+        <div class="small">Importar (cole JSON ou escolha um arquivo)</div>
+        <textarea id="importArea" placeholder='[ { "id":"Q1", "text":"...", "options":{ "A":"...","B":"...","C":"...","D":"..." }, "answer":"A","explain":"" } ]' style="min-height:120px"></textarea>
+        <div class="row" style="margin:8px 0">
+          <button class="btn" id="importBtn">Importar (texto)</button>
+          <input type="file" id="fileInput" accept=".json" class="btn" style="padding:8px;background:#0b1220;border:1px dashed #334155;color:#e5e7eb">
+          <button class="btn" id="loadLocalBtn">Carregar do navegador</button>
+          <button class="btn" id="clearLocalBtn">Apagar banco local</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <script>
-// === Dados EMBUTIDOS ===
-const QUESTIONS = [{"active": true, "id": "Q27 – LTN & Queda de Juros", "text": " 27) Silvio, especialista de investimentos, faz a leitura do cenário macroeconômico e entende que as taxas de juros irão cair num futuro próximo. Sugere a Geraldo, um de seus clientes, que adquira Letras do Tesouro Nacional (LTNs) para venda no prazo de dois anos da data da compra. Considerando a data de hoje, a LTN apresenta exatos 6 anos para seu vencimento e sua taxa de desconto é de 10,0% ao ano. Passados os dois anos previstos pelo especialista, a taxa de desconto das LTNs adquiridas é de 8,0% ao ano. Nestas condições, na venda desses títulos a taxa de retorno, ao ano, auferida pelo cliente foi de", "options": {"A": "14,1% a.a.", "B": "9,4% a.a.", "C": "18,8% a.a.", "D": "10,0% a.a."}, "answer": "A", "explain": "Queda de juros eleva o preço do título prefixado. A taxa efetiva aproximada no período é ~14,1% a.a.", "_uid": "q_px3pri2s62mhu0ua4l"}, {"active": true, "id": "Q42 – VGBL progressivo: IR na fonte", "text": "Ao contratar um plano de previdência complementar do tipo Vida Gerador de Benefício Livre - VGBL, com regime de tributação compensável (tabela progressiva), um indivíduo optou por uma contribuição mensal de R$ 500,00 durante o período de 10 anos, sendo que a primeira aplicação foi realizada no ato da contratação. Durante este período, o rendimento médio do plano foi de 0,65% a.m. Caso efetue o resgate tota do valor acumulado nesse plano, optando por manter o regime de tributação contratado inicialmente, o valor do Imposto de Renda na fonte", "options": {"A": "R$ 13.657,12", "B": "R$ 7.989,23", "C": "R$ 3.104,75", "D": "R$ 4.657,12"}, "answer": "D", "explain": "Para VGBL, o IR incide somente sobre os rendimentos. Na tabela progressiva há retenção na fonte conforme cálculo –", "_uid": "q_sy7ht8xb4ulmhu0ua4l"}, {"active": true, "id": "Q47 – VGBL: afirmações", "text": "Em um plano de previdência complementar do tipo Vida Gerador de Benefício Livre (VGBL) I - ha risco de deficit atuarial no período de acumulação. Il - o participante pode complementar a renda recebida no plano de previdência oficial, sem limite máximo para abatimento de seus rendimentos tributáveis, na Declaração Anual do Imposto de Renda da pessoa física. Ill - a dedução das contribuições na Declaração de Ajuste Anual do Imposto de Renda da pessoa física nesse tipo de plano de previdência complementar não possui limite máximo. Está correto o que se afirma em:", "options": {"A": "I apenas.", "B": "II apenas.", "C": "I, II e III.", "D": "I e II apenas."}, "answer": "A", "explain": "No VGBL não há dedução de contribuições no IR", "_uid": "q_0pliwl0eaelimhu0ua4l"}, {"active": true, "id": "Q49 – Média x Mediana x Moda", "text": "Durante a avaliação da performance de um fundo de ações em um período de 20 pregões, surgiram dúvidas acerca de como sintetizar de forma mais representativa os valores de rentabilidade diária observados. Taís Oliveira defendeu a utilização da média, Mariana Tavares prefere a mediana, alegando que algumas variações extremas observadas na amostra teriam afetado o comportamento geral. Carlos Moreira argumentou que a moda seria útil para identificar o retorno mais recorrente ao longo dos dias. A escolha mais adequada da medida de posição central nesse contexto decorre principalmente do fato de", "options": {"A": "a mediana não sofrer forte influência de valores muito elevados ou muito baixos, conferindo robustez em distribuições assimétricas.", "B": "a mediana ficar invariavelmente próxima ao valor médio das observações, não havendo grande diferença entre ambas em distribuições com muitos outliers.", "C": "a moda ser o indicador que melhor sintetiza o comportamento dos dados, pois sempre corresponde ao pico de frequências", "D": "a média ser menos sensível aos outliers, oferecendo o valor que melhor reflete a maior parte das observações."}, "answer": "A", "explain": "A mediana é robusta a outliers e assimetrias; média e moda podem distorcer.", "_uid": "q_p13zo9ie26mhu0ua4l"}, {"active": true, "id": "Q50 – CAPM", "text": "Um título do tesouro, de um ano de prazo de vencimento, está sendo negociado a 8,00% a.a. Um especialista em investimento estima o retorno do mercado de ações em 20,00% para o mesmo prazo. Uma carteira de ações com beta igual a 0,8 deve ter retorno projetado, para o mesmo período de tempo, de", "options": {"A": "20,00% a.a.", "B": "12,00% a.a.", "C": "12,80% a.a.", "D": "17,60% a.a."}, "answer": "D", "explain": "CAPM: R = Rf + β (Rm − Rf) = 8% + 0,8×(20−8)= 17,6% a.a.", "_uid": "q_rwb3bchk6rmhu0ua4l"}, {"active": true, "id": "Q55 – Basileia no Brasil", "text": "Durante uma conferência internacional sobre regulação bancária realizada em Brasília, discutia-se como a implementação dos Acordos de Basileia no Brasil apresentou características particulares em comparação com outros países emergentes. O debate focava especialmente em como o Banco Central do Brasil adotou medidas mais conservadoras que as recomendações internacionais em diversos aspectos, e como isso impactou o sistema financeiro nacional durante diferentes ciclos econômicos. Uma análise histórica mostrou como os bancos brasileiros reagiran às mudanças regulatórias desde Basileia I até Basileia III, especialmente durante períodos de estresse financeiro global. Considerando a evolução da implementação dos Acordos de Basileia no Brasil e suas consequências para o sistema financeiro nacional, a caracteristica que melhor diferencia a abordagem regulatória brasileira em relação aos padrões internacionais:", "options": {"A": "o modelo regulatório nacional priorizou a competitividade internacional dos bancos brasileiros, flexibilizando temporariamente os requerimentos de capital durante crises sistêmicas para manter o fluxo de crédito.", "B": "a regulação brasileira estabeleceu requerimentos mais conservadores, incluindo níveis mínimos de capital superiores aos padrões internacionais e tratamento mais restritivo para ativos de maior risco, contribuindo para maior resiliência do sistema.", "C": "os reguladores locais focaram exclusivamente nos aspectos quantitativos de Basileia Ill, dispensando a implementação dos pilares qualitativos de supervisão e disciplina de mercado por serem considerados inadequados ao contexto brasileiro.", "D": "o Brasil adotou exigências de capital menos restritivas que as recomendações internacionais para compensar o maior custo de capital no mercado local, permitindo maior alavancagem dos bancos em períodos de crescimento econômico."}, "answer": "B", "explain": "Historicamente o Brasil adotou postura mais conservadora, com colchões de capital mais altos e regras mais restritivas para riscos.", "_uid": "q_80ojmw0iyhmhu0ua4l"}, {"active": true, "id": "Q57 – CAPM", "text": "Com base no Capital Asset Pricing Model (CAPM), a empresa A possui custo de capital próprio estimado em 15,00% ao ano e, a empresa B, er 12,00% ao ano. Considerando tanto o retorno do ativo livre de risco quanto o prêmio pelo risco de mercado de 5,00% ao ano, o coeficiente bi das empresas A e B, respectivamente, são", "options": {"A": "2,00 e 1,40", "B": "1,50 е 1,20", "C": "1,25 e 1,00", "D": "3,00 e 2,40"}, "answer": "A", "explain": "...", "_uid": "q_szmdj2jh8esmhu0ua4l"}, {"active": true, "id": "Q61 – Finanças comportamentais", "text": "Um levantamento interno de uma corretora evidenciou que diversos investidores encerram suas posições em ações logo após registrarem pequenos ganhos (entre +5% e +15%), mas preferem manter papéis que acumulam perdas significativas (de -30% a -50%), na esperança de uma recuperação futura. Ao serem entrevistados, relataram sentir maior \"dor\" diante da possibilidade de vender com prejuízo do que \"prazer\" ao realizar um lucro, repetindo esse padrão de comportamento independentemente do ciclo de mercado. O comportamento observado caracteriza", "options": {"A": "racionalidade nas decisões de investimento, maximizando retorno esperado independente do resultado acumulado.", "B": " estratégia de investimento que prioriza carregamento de posições até o horizonte final planejado.", "C": "armadilha da confirmação, manifestada na busca por informações que justifiquem manter posições ganhadoras.", "D": "aversão à perda, evidenciada pela realização prematura de ganhos e manutenção prolongada de posições perdedoras."}, "answer": "D", "explain": "Perder dói mais que ganhar: aversão à perda leva a realizar ganhos cedo e segurar perdas.", "_uid": "q_jhhrw3ezyy8mhu0ua4l"}, {"active": true, "id": "Q65 – Planejamento orçamentário famílias", "text": "Ruy Alencar, consultor financeiro, está analisando os perfis de três famílias com diferentes situações patrimoniais e níveis de controle orçamentário: Família 1 Renda mensal: R$ 30.000 Despesas mensais: R$ 28.000 Dívidas acumuladas: R$ 200.000 Ausência de controle detalhado Família 2 Renda mensal: R$ 15.000 Despesas mensais: R$ 12.000 Investimentos atuais: R$ 100.000 Controle financeiro parcial Família 3 Renda mensal: R$ 45.000 Despesas mensais: R$ 35.000 Patrimônio total: R$ 500.000 Controle financeiro parcial, diversas fontes de renda A abordagem mais eficaz para otimização orçamentária deve", "options": {"A": "ocar na redução de despesas da Família 1, desconsiderando aspectos de geração de renda.", "B": "adotar um mesmo padrão de orçamento para todas as famílias, baseando-se nos valores e características da familia que possui maior patrimônio.", "C": "priorizar investimentos da Familia 2, desconsiderando a necessidade de formar ou manter uma reserva de emergência.", "D": "Implementar um sistema integrado de controle financeiro que considere fluxo de caixa , categorização de despesas e metas especificas para cada família, respeitando suas prioridades e capacidades de poupança"}, "answer": "D", "explain": "Personalização por contexto, metas e fluxo de caixa é a melhor prática.", "_uid": "q_41pjuuz3o6dmhu0ua4l"}, {"active": true, "id": "Q10", "text": "10) Pedro Casara é analista-chefe de investimentos do fundo Omnia Capital, especializado em mercados emergentes. Durante uma reunião, sua equipe discute o cenário brasileiro. Recentemente houve um aumento significativo das reservas internacionais do país, impulsionado por um superávit comercial robusto e forte entrada de capital estrangeiro em investimentos de portfólio. Ele argumenta que esse aumento pode influenciar a taxa de câmbio e a atratividade do país para investidores, mas há divergências dentro da equipe. Assim, Pedro explica a seus analistas que o crescimento das reservas internacionais", "options": {"A": "A. não tem impacto sobre a taxa de câmbio nem sobre a atratividade do país para investidores, pois são apenas um reflexo contábil das operações externas.", "B": "B. pode fortalecer a confiança dos investidores estrangeiros, pois sinaliza maior capacidade do país de lidar com choques externos, o que pode atrair mais capital e contribuir para a apreciação da moeda brasileira.", "C": "C. reduz a liquidez do mercado doméstico, tornando o crédito mais caro e desincentivando o investimento estrangeiro no país.", "D": "D. tende a depreciar a moeda, pois indica que o Banco Central está intervindo agressivamente no mercado de câmbio, reduzindo a entrada de capitais especulativos."}, "answer": "B", "explain": "", "_uid": "q_300pliwxlzfmhu0ua4l"}, {"active": true, "id": "Q18", "text": "18) O Tesouro Norte-Americano realizará um leilão de títulos públicos. Os investidores que pretendam adquirir títulos do tipo zero cupom e títulos que os protejam de uma alta inflacionária deverão comprar, respectivamente,", "options": {"A": "A. T-Notes e T-Bonds.", "B": "B. T-Bills e T-Bonds.", "C": "C. T-Bills e TIPS.", "D": "D. T-Notes e TIPS."}, "answer": "C", "explain": "", "_uid": "q_famwk5i5w1qmhu0ua4l"}, {"active": true, "id": "Q32", "text": "32) Um investidor pretende elaborar uma estratégia de investimento com duas ações integrantes do Índice Bovespa, com o objetivo de aumentar o retorno esperado de sua carteira. Caso o investidor tenha utilizado a análise técnica, espera-se que suas decisões tenham sido influenciadas pela I. preço de suporte e resistência das ações. II. cálculo do preço da ação pelo modelo do valor presente dos dividendos. III. índice de força relativa das ações. Está correto o que se afirma apenas em", "options": {"A": "A. I e III.", "B": "B. I e II.", "C": "C. II e III.", "D": "D. II."}, "answer": "A", "explain": "", "_uid": "q_k85u61d577mhu0ua4l"}, {"active": true, "id": "Q37", "text": "37) Nas operações com contratos derivativos negociados em bolsa de valores ou futuros, o especulador I. é desfavorável ao funcionamento do mercado, pois, não visa a realizar as operações para se proteger de volatilidade. II. assume riscos com a expectativa de ganhos no curto prazo. III. garante ganho imediato ao aproveitar diferentes preços de um mesmo ativo em diferentes mercados. IV. é relevante para o mercado, pois, provê a liquidez às operações. Está correto o que se afirma APENAS em", "options": {"A": "A. I, II e IV.", "B": "B. II e III.", "C": "C. II e IV.", "D": "D. I, II e III."}, "answer": "C", "explain": "", "_uid": "q_pkejnclaxknmhu0ua4l"}, {"active": true, "id": "Q41", "text": "41) Gabriel é um consultor de investimentos desenvolvendo sua carteira de clientes. O senhor João Pedro, potencial cliente, gostaria de investir em fundos de investimentos, por meio de um fundo exclusivo, mas está reticente quanto ao papel dos prestadores de serviços em tais estruturas. Ele teme que, ao aportar recursos em um fundo de investimento, o administrador fiduciário e o gestor de recursos possam agir de modo prejudicial aos interesses do investidor e em benefício próprio. Para dirimir tal inquietação, Gabriel deve esclarecer que", "options": {"A": "A. o administrador fiduciário deve fiscalizar a atuação do gestor de recursos, assegurando ao cotista que não haja qualquer possibilidade de descumprimento de normas atinentes ao fundo de investimento e/ou a qualquer de suas classes.", "B": "B. o administrador fiduciário e o gestor podem livremente praticar atos de liberalidade com recursos dos fundos por eles administrados ou geridos, independentemente de qualquer previsão em regulamento.", "C": "C. compete ao cotista, em fundos exclusivos, realizar a fiscalização da atividade dos prestadores de serviços essenciais, que não podem ser responsabilizados, cível ou administrativamente, por qualquer descumprimento de norma que não tenha sido a eles notificado pelo cotista.", "D": "D. os prestadores de serviços devem exercer suas atividades buscando sempre as melhores condições para o fundo e suas classes de cotas, empregando o cuidado e a diligência que todo homem ativo e probo costuma dispensar à administração."}, "answer": "D", "explain": "", "_uid": "q_7dvy9ls0vmrmhu0ua4l"}, {"active": true, "id": "Q42", "text": "42) Segundo as Regras e Procedimentos de Administração e Gestão de Recursos de Terceiros da ANBIMA, para o Apreçamento dos veículos de investimento, I. as regras, procedimentos e metodologias utilizadas pelo Administrador Fiduciário no apreçamento dos ativos financeiros dos veículos de investimento, sob sua administração, deverão ser públicas. II. o Administrador Fiduciário deverá divulgar em seu site a versão completa do seu Manual de Apreçamento. III. as informações de preços ou fatores utilizados no Apreçamento de ativos financeiros deverão ser convertidos da moeda estrangeira para a moeda nacional, utilizando a taxa de câmbio referencial (D2), divulgada pela B3. Está correto o que se afirma em", "options": {"A": "A. I e III, apenas.", "B": "B. II e III, apenas.", "C": "C. I, II e III.", "D": "D. I e II, apenas."}, "answer": "A", "explain": "", "_uid": "q_nzjypslabtomhu0ua4l"}, {"active": true, "id": "Q52", "text": "52) O Fundo de Investimento Financeiro Alfa Beta Responsabilidade Limitada possui duas classes: a Classe Alfa Beta Renda Fixa Indexado DI e a Classe Alfa Beta Renda Fixa Crédito Privado. O gestor do fundo, a MG Asset Management, deseja alterar a política de investimento da Classe Alfa Beta Renda Fixa Indexado DI, de modo que esta classe possa investir também em ativos vinculados à inflação e não apenas vinculados à variação acumulada das taxas médias dos depósitos interfinanceiros, ou Taxa DI, como atualmente está previsto no anexo descritivo da classe. Ambas as classes são organizadas sob a forma de condomínio aberto, possuem subclasse única e são voltadas a investidores não qualificados (“varejo”). Desse modo, essa alteração", "options": {"A": "A. pode ser realizada em conjunto pelos prestadores de serviço essenciais sem a necessidade de assembleia geral ou especial de cotistas, pois não se trata de matéria de competência de assembleia de cotistas.", "B": "B. dependerá da assembleia especial com número de cotistas não limitado, e instalada de forma exclusivamente presencial.", "C": "C. deverá ser aprovada em assembleia geral de cotistas do Fundo, abrangendo ambas as classes, pois se trata de matéria de interesse do Fundo como um todo e não apenas de uma das classes.", "D": "D. da política de investimento da Classe depende de alteração do anexo descritivo da respectiva Classe o que demanda aprovação em assembleia especial de cotistas da classe, a ser convocada pelo próprio gestor."}, "answer": "D", "explain": "", "_uid": "q_dw5rp20p1bmhu0ua4l"}, {"active": true, "id": "Q54", "text": "54) O consultor de investimentos Cláudio Santos está atendendo um cliente de alto poder aquisitivo que investe atualmente apenas em títulos de renda fixa bancários e Tesouro Direto, mas quer começar a adquirir ativos com diferentes níveis de risco, inclusive de renda variável. Esse cliente ouviu rumores que os fundos de investimento são extremamente arriscados, pois envolveriam o empréstimo de dinheiro ao gestor do Fundo, que aplica em nome próprio os recursos captados dos investidores em ativos de alto risco. Nesse caso, o entendimento do cliente de Cláudio Santos", "options": {"A": "A está equivocado, pois, ainda que empreste o recurso investido ao gestor, o investidor terá a garantia de retorno previamente estabelecido em contrato.", "B": "B. é incorreto, pois a aplicação de recursos em fundos de investimento envolve a aquisição direta, pelo cotista, em seu próprio nome, dos ativos adquiridos por intermédio do gestor.", "C": "C. está equivocado, pois, ao aplicar recursos em um fundo de investimento, o investidor subscreve cotas representativas de fração ideal de um condomínio de natureza especial, que é gerido por um gestor de recursos de terceiros que não exerce a titularidade dos ativos.", "D": "D. é parcialmente correto, pois embora o gestor possa adquirir ativos de baixo risco com os recursos do fundo de investimento, esta aquisição é feita em nome do próprio gestor e não do fundo de investimento, de modo que o patrimônio do fundo de investimento se confunde com o patrimônio do gestor."}, "answer": "C", "explain": "", "_uid": "q_wmcvmnit1aemhu0ua4l"}, {"active": true, "id": "Q62", "text": "62) A TET Asset Management está estruturando um fundo de investimento financeiro para investidores não qualificados e deseja cobrar taxa de performance. Nesse sentido, a taxa de performance:", "options": {"A": "A. pode ser majorada por iniciativa do gestor, sem aprovação dos cotistas, desde que mantido o índice de referência.", "B": "B. destinada a investidores não qualificados é permitida e pode ser cobrada trimestralmente.", "C": "C. pode ser livremente fixada no regulamento ou no anexo descritivo da classe.", "D": "D. deve ser vinculada a um índice de referência verificável, sendo vedada a vinculação a percentuais inferiores a 100%."}, "answer": "D", "explain": "", "_uid": "q_vli375v7mbamhu0ua4l"}, {"active": true, "id": "Q67", "text": "67) Emiliano procurou Mario, seu amigo e consultor de valores mobiliários, e lhe disse que queria fazer o mesmo tipo de \"aplicação de risco\" que se primo fez, porque esse primo \"se deu bem\". Antes de realizar a aplicação solicitada, Mario apurou que as informações relativas ao perfil de Emiliano estavam desatualizadas e que ele, algumas vezes, revelava forte intolerância a perdas financeiras, ainda que temporárias. Mario tentou dissuadir Emiliano de fazer essa aplicação, mas Emiliano, mesmo sem nunca ter feito uma aplicação como essa, ordenou que ela fosse feita. Diante de tais circunstâncias, Mario deverá", "options": {"A": "A alertar Emiliano acerca da desatualização e da inadequação do seu perfil, indicando as causas da divergência, mas alertando que essas exigências podem ser legalmente contornadas se a aplicação for feita por meio de aplicativo (app) da instituição financeira.", "B": "B. alertar Emiliano, antes da primeira operação com a categoria de valor mobiliário, acerca da desatualização e da inadequação do seu perfil, indicando as causas da divergência e obtendo declaração expressa de Emiliano de que está ciente desses fatos.", "C": "C. se recusar a atender à determinação dada por Emiliano, mas deverá informá-lo de que a referida operação poderá ser feita, sem qualquer tipo de restrição, por meio de aplicativo (app) próprio da instituição financeira, ou por meio de site na internet.", "D": "D. se recusar a atender à determinação dada por Emiliano, mas deverá informá-lo de que a referida operação poderá ser feita, sem qualquer tipo de restrição, por meio de aplicativo (app) próprio da instituição financeira, apenas, e mediante o uso de token."}, "answer": "B", "explain": "", "_uid": "q_cw4r3vdowswmhu0ua4l"}, {"active": true, "id": "Q70", "text": "70) Um indivíduo contratou um especialista em investimento para elaborar um planejamento financeiro de sua família baseado no processo definido pela Associação Brasileira de Planejadores Financeiros (PLANEJAR). Esse especialista, na fase \"coleta das informações\", deverá:\n\nI. definir a responsabilidade de ambos (planejador e cliente) durante o trabalho.\n\nII. identificar eventuais problemas de saúde desse indivíduo.\n\nIII. identificar se as relações familiares podem dificultar as estratégias de planejamento sucessório.\n\nEstá correto o que se afirma em", "options": {"A": "A. I e III, apenas.", "B": "B. I e II, apenas.", "C": "C. I,II e III.", "D": "D. II e III, apenas."}, "answer": "D", "explain": "", "_uid": "q_wvzbq1wdovlmhu0ua4l"}, {"active": true, "id": "Q12", "text": "2) Um aumento na taxa básica de juros de um determinado pais tem como efeito esperado a____________de sua moeda e _______taxa de inflação. As lacunas da frase são preenchidas corretamente por:\n", "options": {"A": " valorização - a queda.", "B": " valorização - o aumento.", "C": " desvalorização - a queda.", "D": " desvalorização - o aumento."}, "answer": "A", "explain": "", "_uid": "q_qxo7lx0f6zbmhu0ua4l"}, {"active": true, "id": "Q24", "text": "24) Um especialista em investimentos define duas estratégias a serem implementadas para o casal de clientes, Adriana e Renato: - Estratégia 1: usar uma ordem de mercado para comprar ações imediatamente. - Estratégia 2: usar uma ordem limitada para vender ações a um preço mínimo de R$ 50. Durante um período de alta volatilidade, o preço das ações variou rapidamente, sendo negociadas entre R$ 48 e R$ 52. Nesse caso, cabe ao especialista explicar para Adriana e Renato que existem riscos associados a cada tipo de estratégia. A ordem", "options": {"A": "a mercado garante sempre o melhor preço, enquanto a ordem limitada é sempre executada independentemente do preço.", "B": "limitada será executada automaticamente ao atingir qualquer preço dentro da faixa de oscilação previamente determinada.", "C": "a mercado pode ser executada a preços desfavoráveis durante a volatilidade, enquanto a ordem limitada pode não ser executada se o preço não atingir o valor estipulado.", "D": "a mercado é mais segura em cenários de volatilidade, pois prioriza a velocidade de execução, enquanto a ordem limitada apresenta maior risco devido à dependência de preços exatos.\n"}, "answer": "C", "explain": "", "_uid": "q_67rrse5fab4mhu0ua4l"}, {"active": true, "id": "Q37", "text": "37) Nas operações com contratos derivativos negociados em bolsa de valores ou futuros, o especulador   I. é desfavorável ao funcionamento do mercado, pois, não visa a realizar as operações para se proteger de volatilidade. II. assume riscos com a expectativa de ganhos no curto prazo. III. garante ganho imediato ao aproveitar diferentes preços de um mesmo ativo em diferentes mercados. IV. é relevante para o mercado, pois, provê a liquidez às operações.   Está correto o que se afirma APENAS em", "options": {"A": "I,II e IV.", "B": ". II e III", "C": " II e IV.", "D": "I, II e III"}, "answer": "C", "explain": "", "_uid": "q_cjpgfj07pkmhu0ua4l"}, {"active": true, "id": "Q38", "text": "38) Um investidor procura um especialista de investimento de seu banco para iniciar investimentos diretamente no mercado acionário da B3 (compra e venda de ações, fundos de índice e derivativos). O especialista acerta na sua explicação sobre a tributação ao afirmar que", "options": {"A": "a alíquota de imposto de renda sobre o lucro, na compra e venda de ações, é de 20% sobre o ganho de capital, quando o total das alienações de ações no mês exceder a R$ 20.000,00.", "B": "a alíquota de imposto de renda para operações de day trade (compra e venda de uma mesma ação, em um determinado dia) é de 20% sobre o ganho de capital, quando o total das alienações de ações no mês exceder a R$ 20.000,00.", "C": "as despesas efetivamente pagas e destacadas na nota de corretagem, como corretagens e emolumentos, podem ser consideradas na apuração do ganho líquido, sendo acrescidas ao preço de compra e deduzidas do preço de venda dos ativos negociados.", "D": "ficam isentos do imposto de renda os ganhos líquidos auferidos por pessoa física quando o total das alienações de ações e cotas de fundos de índices de ações, em determinado mês, não exceder a R$ 20.000,00."}, "answer": "C", "explain": "", "_uid": "q_79polxj47qmhu0ua4l"}, {"active": true, "id": "", "text": "45) Um investidor, preocupado com o cenário atual do mercado, adquiriu cotas de uma classe de um Fundo de Investimento Multimercado de Capital Protegido que aplica seus recursos em títulos privados de renda fixa e em instrumentos derivativos. O objetivo desse fundo é o de acompanhar a performance de um índice acionário e proteger 100% do total aplicado. Um especialista em investimento deverá esclarecer-lhe que\n", "options": {"A": "os riscos de mercado e de liquidez dos instrumentos derivativos poderão acarretar a perda de 100% do capital aplicado.", "B": "o risco de crédito inerente à parcela investida em títulos privados poderá acarretar a perda de parte do capital aplicado.", "C": "o risco da compra de opções de ações e/ou opções de índices poderá acarretar a perda de parte do capital aplicado.", "D": " o risco de crédito dos títulos privados é garantido pelo administrador, de forma a devolver, no mínimo, 100% do capital aplicado no vencimento.\n"}, "answer": "B", "explain": "", "_uid": "q_ae7c7mtt7gpmhu0ua4l"}, {"active": true, "id": "Q52", "text": "52) O Fundo de Investimento Financeiro Alfa Beta Responsabilidade Limitada possui duas classes: a Classe Alfa Beta Renda Fixa Indexado DI e a Classe Alfa Beta Renda Fixa Crédito Privado. O gestor do fundo, a MG Asset Management, deseja alterar a política de investimento da Classe Alfa Beta Renda Fixa Indexado Di, de modo que esta classe possa investir também em ativos vinculados a inflação e não apenas vinculados a variação acumulada das taxas medias dos depósitos interfinanceiros, ou Taxa Di, como atualmente está previsto no anexo descritivo da classe. Ambas as classes são organizadas sob a forma de condomínio aberto, possuem subclasse única e são voltadas a investidores não qualificados (\"varejo\"). Desse modo, essa alteração", "options": {"A": "pode ser realizada em conjunto pelos prestadores de serviço essenciais sem a necessidade de assembleia geral ou especial de cotistas, pois não se trata de matéria de competência de assembleia de cotistas.", "B": "dependerá da assembleia especial com número de cotistas não limitado, e instalada de forma exclusivamente presencial.", "C": "deverá ser aprovada em assembleia geral de cotistas do Fundo, abrangendo ambas as classes, pois se trata de matéria de interesse do Fundo como um todo e não apenas de uma das classes.", "D": "da política de investimento da Classe depende de alteração do anexo descritivo da respectiva Classe o que demanda aprovação em assembleia especial de cotistas da classe, a ser convocada pelo próprio gestor."}, "answer": "D", "explain": "", "_uid": "q_riijc6y6ildmhu0ua4l"}, {"_uid": "q_k4lpgz4hvkjmhy7hq9y", "active": true, "id": "Q8", "text": "Um investidor realizou um investimento de R$ 5.000,00 e receberá seus recursos da seguinte forma: R$ 2.400,00 em 30 dias; R$ 2.240,00 em 60 dias e R$ 1.080,00 em 90 dias. Seu custo de oportunidade é de 3,00% a.m. Nesse caso, o valor presente líquido desse investimento será, aproximadamente", "options": {"A": "R$ 419,38", "B": "R$ 403,33", "C": "R$ 429,86", "D": "R$ 409,27"}, "answer": "C", "explain": ""}, {"active": true, "id": "Q22", "text": "A distribuição de Juros sobre o Capital Próprio (JCP), pelas companhias listadas em bolsa, dentre outros aspectos, justifica-se pelo", "options": {"A": " atendimento às obrigações legais relativas ao pagamento de dividendos.", "B": "pagamento aos acionistas das diferenças de taxas resultantes de captações realizadas em bolsa.", "C": " atendimento às obrigações legais assumidas perante os seus credores.", "D": "?"}, "answer": "A", "explain": "", "_uid": "q_aalhy51wyvjmhy7j0vn"}, {"active": true, "id": "Q26", "text": "Uma empresa apresentou, ao final do último Exercício Social de 2015, as seguintes Demonstrações de Resultados dos Exercícios de 2014 e 2015:\n\n\nO Earnings Before Interest, Taxes, Depreciation and Amortization (EBITDA), em 31/12/2015, foi", "options": {"A": " R$ 14.600,00", "B": "R$ 9.960,00", "C": "R$ 21.800,00", "D": "R$ 17.600,00"}, "answer": "D", "explain": "", "_uid": "q_kzxq26jwaxmhy7k2mt"}, {"active": true, "id": "Q31", "text": "31. Um Fundo de Investimento Multimercado visa a um retorno de 150% da Taxa do DI. Para atingir esse objetivo, a política de investimento do fundo permite que ele alavanque até 200% de seu patrimônio em operações de mercados futuros. Em determinado dia, o fundo estava utilizando o seu limite máximo de alavancagem e os preços dos ativos da carteira desvalorizaram 15%, sem considerar a perda com derivativos. Nessa situação, o valor das cotas desse fundo desvalorizou, aproximadamente,", "options": {"A": "15%", "B": "30%", "C": " 5%", "D": "45%\n"}, "answer": "D", "explain": "", "_uid": "q_nloewalsh7cmhy822au"}, {"active": true, "id": "Q45", "text": "45. Um indivíduo, 75 anos de idade, residente e domiciliado no Brasil, recebeu uma herança inesperada, vinda de um parente distante. Atualmente, a sua aposentadoria pelo Regime Geral de Previdência Social (RGPS) é insuficiente para honrar os compromissos mensais e foi aconselhado pelo especialista de investimentos a utilizar o montante recebido para realizar um aporte único. em um plano de previdência complementar, com benefício de renda vitalícia. Nesse caso\n\nI. é vedada a contratação de plano de previdência complementar por pessoas com mais de 65 anos de idade.\nIl. não é permitida a contratação de plano de previdência complementar, com benefício de renda vitalícia, mediante um\naporte único.\nIll. dentre ostipos de rendas atuariais disponíveis, a renda vitalícia é a que proporciona o maior valor mensal.\nIV. não existe tempo mínimo de permanência no plano de previdência complementar para optar pela transformação da\nreserva em renda mensal", "options": {"A": "I e IV.", "B": "III e IV", "C": "I.", "D": " l e ll."}, "answer": "B", "explain": "", "_uid": "q_yzt2fqzbxhemhy833d9"}, {"active": true, "id": "Q62", "text": "62. Um financiamento imobiliário no valor de R$ 650.000,00 foi realizado pelo prazo de 180 meses e taxa exponencial de juros de 10,00% a.a..\n\nCaso opte pelo Sistema de Amortização Constante (SAC), o valor da primeira parcela será, aproximadamente,", "options": {"A": "R$ 9.027,78", "B": "R$ 6.814,54", "C": "R$ 8.794,30", "D": "R$ 5.183,19"}, "answer": "C", "explain": "", "_uid": "q_efc7jh3q5i9mhy8jtd0"}, {"active": true, "id": "Q51", "text": "51. Um investidor está selecionando dois ativos para compor a sua carteira. Seu especialista em investimento sugeriu ações de três setores distintos, mas que apresentam o mesmo retorno esperado. A matriz de correlação dessas ações está apresentada na tabela abaixo\n\nPara reduzir o risco da carteira, o investidor", "options": {"A": " deveria selecionar apenas Y e Z, pois apenas as correlações próximas a 0,5 minimizam o risco.", "B": "não deveria selecionar X junto com Y ou Z, nem Y com Z, pois apenas ativos com correlações negativas minimizam o risco.\n", "C": "deveria selecionar apenas X e Y, pois quanto maior a correlação entre as ações menor o risco.", "D": "deveria selecionar apenas X e Z, pois quanto menor a correlação entre as ações menor o risco."}, "answer": "D", "explain": "", "_uid": "q_9d89ssuxa2mhy8mm46"}, {"active": true, "id": "Q42", "text": "42. Um investidor realiza um único aporte, hoje, de R$ 500.000,00 em um plano de previdência complementar do tipo Vida Gerador de Benefício Livre - VGBL, com regime de tributação exclusivo na fonte (tabela regressiva) e solicita a um especialista em investimento que faça uma simulação de seu saldo líquido, após 15 anos.\n\nDado: rendimento bruto anual constante para os 15 anos: 8,00% a.a.\n\nNesse caso, este especialista informará que o saldo líquido nesse plano, ao final do 15° ano será, aproximadamente, de", "options": {"A": "R$ 1.586.084,56", "B": "R$ 1.477.476, 10", "C": "R$ 1.427.476, 10", "D": "R$ 977.476, 10\n"}, "answer": "B", "explain": "", "_uid": "q_hoagut85217mhy9sps4"}, {"active": true, "id": "Q47", "text": "47. Carlos, residente e domiciliado no Brasil, é executivo em uma indústria do setor privado onde recebe um salário mensal de R$ 50.000,00. Atualmente, possui um plano de previdência complementar corporativo da modalidade Plano Gerador de Benefício Livre (PGBL) para o qual contribui, mensalmente, com 4,00% e a empresa com 5,00% do seu salário bruto. Para usufruir o máximo benefício fiscal, ele poderá acrescentar para um PGBL individual o valor máximo mensal de:", "options": {"A": "R$ 1.500,00.", "B": "R$ 6.000,00.", "C": "R$ 4.000,00.", "D": "R$ 3.500,00."}, "answer": "C", "explain": "", "_uid": "q_bq2zx1rsqnkmhy9tfho"}, {"active": true, "id": "Q51", "text": "51. Um analista avalia a ação da empresa \"Delta\" e estima que o rendimento de dividendos da ação (dividend yield), ao final de 12 meses, será de 3,00% no período. Considerando ainda que:\n\n- Retorno do ativo livre de risco = 10,00% a.a.\n\n- Retorno esperado da carteira de mercado para o período de 12 meses = 15,00% a.a.\n\n- Beta da ação da \"Delta\" = 0,85\n\nEntão, o retorno esperado, ao ano, para as ações da \"Delta\" pelo Capital Asset Pricing Model (CAPM) é de:\n", "options": {"A": "11,25%", "B": "14,25%", "C": "17,25%", "D": "22,75%\n"}, "answer": "B", "explain": "", "_uid": "q_z5lq034rbeimhy9u6gi"}, {"active": true, "id": "Q62", "text": "62. Um investidor planeja aposentar-se com uma renda vitalícia mensal de R$ 15.000,00. Para atingir o seu objetivo, considerando um rendimento líquido de 0,60% a.m., constante durante todo o período de sua aposentadoria, deverá acumular o montante de", "options": {"A": "R$ 2.200.000,00", "B": "R$ 2.500.000,00", "C": "R$ 1.800.000,00", "D": "R$ 3.000.000,00"}, "answer": "B", "explain": "", "_uid": "q_ri5cy2tivmmhy9uvz6"}, {"active": true, "id": "Q67", "text": "67. Uma das etapas do processo de elaboração do planejamento financeiro, conforme a Associação Brasileira de Planejadores Financeiros (Planejar) é o desenvolvimento e apresentação de recomendações ao cliente. Sobre essa etapa, deve-se assegurar o planejador que o cliente tenha um adequado entendimento\n\nI - dos fatores e premissas atuais que foram fundamentais para as recomendações.\n\nII - dos riscos das estratégias.\n\nIII - do provável impacto das recomendações sobre a capacidade do cliente atingir seus objetivos, devendo evitar apresentar sua opinião como um fato.\n\nEstá correto o que se afirma em", "options": {"A": "III, apenas.", "B": "I, apenas.", "C": " I, Il e III.", "D": " I e Il, apenas."}, "answer": "C", "explain": "", "_uid": "q_meo7z7ae98gmhy9via0"}, {"active": true, "id": "Q69", "text": "69. Segundo a Resolução n° 30 da CVM, os profissionais que fazem recomendação de produtos de investimento para clientes têm o dever de analisar e classificar as categorias de produtos com que atuem, identificando as características que possam afetar sua adequação ao perfil do cliente. Dentre outras características dos produtos, devem ser analisados", "options": {"A": "o retorno esperado e a existência de garantias.", "B": "os riscos associados e o prazo de vencimento.", "C": "o retorno esperado e o prazo de vencimento.", "D": " os riscos associados e a existência de garantias."}, "answer": "D", "explain": "", "_uid": "q_s7pxj62k14emhy9wzbs"}, {"active": true, "id": "Q70", "text": "70. Ricardo é um investidor que possui ações de uma empresa no setor de softwares que têm apresentado uma performance abaixo da média de mercado nos últimos tempos. A mídia financeira atribuiu esse fato à demora da administração a reagir às novidades do setor. Ricardo considera que o investimento está melhor, devido à redução de preço da ação e lê o relatório de um analista que recomendou a \"compra\" do papel. Nesse contexto, ele está exposto ao viés da heurística da", "options": {"A": "representatividade.", "B": "aversão à perda.", "C": "disponibilidade.", "D": " confirmação."}, "answer": "D", "explain": "", "_uid": "q_v4ltbtbhx7mhy9xl3n"}];
+const $ = sel => document.querySelector(sel);
+const LS_KEY = 'cea_questions_persist_v30';
 
-// === Estado ===
+function makeUID(){ return 'q_' + Math.random().toString(36).slice(2) + Date.now().toString(36); }
+function ensureUIDs(){
+  questions.forEach(q=>{ if(!q._uid) q._uid = makeUID(); });
+}
+function buildIndexMap(){
+  const m = new Map();
+  questions.forEach((q,i)=>{ if(q && q.active!==false) m.set(q._uid, i); });
+  return m;
+}
+
+
+const EMBEDDED_FROM_V18 = [
+  {
+    id: "Q27 – LTN & Queda de Juros",
+    text: ` 27) Silvio, especialista de investimentos, faz a leitura do cenário macroeconômico e entende que as taxas de juros irão cair num futuro próximo. Sugere a Geraldo, um de seus clientes, que adquira Letras do Tesouro Nacional (LTNs) para venda no prazo de dois anos da data da compra. Considerando a data de hoje, a LTN apresenta exatos 6 anos para seu vencimento e sua taxa de desconto é de 10,0% ao ano. Passados os dois anos previstos pelo especialista, a taxa de desconto das LTNs adquiridas é de 8,0% ao ano. Nestas condições, na venda desses títulos a taxa de retorno, ao ano, auferida pelo cliente foi de`,
+    options: { A:"14,1% a.a.", B:"9,4% a.a.", C:"18,8% a.a.", D:"10,0% a.a." },
+    answer: "A",
+    explain: "Queda de juros eleva o preço do título prefixado. A taxa efetiva aproximada no período é ~14,1% a.a."
+  },
+  {
+    id: "Q42 – VGBL progressivo: IR na fonte",
+    text: `Ao contratar um plano de previdência complementar do tipo Vida Gerador de Benefício Livre - VGBL, com regime de tributação compensável (tabela progressiva), um indivíduo optou por uma contribuição mensal de R$ 500,00 durante o período de 10 anos, sendo que a primeira aplicação foi realizada no ato da contratação. Durante este período, o rendimento médio do plano foi de 0,65% a.m. Caso efetue o resgate tota do valor acumulado nesse plano, optando por manter o regime de tributação contratado inicialmente, o valor do Imposto de Renda na fonte`,
+    options: { A:"R$ 13.657,12", B:"R$ 7.989,23", C:"R$ 3.104,75", D:"R$ 4.657,12" },
+    answer: "D",
+    explain: "Para VGBL, o IR incide somente sobre os rendimentos. Na tabela progressiva há retenção na fonte conforme cálculo –"
+  },
+  {
+    id: "Q47 – VGBL: afirmações",
+    text: `Em um plano de previdência complementar do tipo Vida Gerador de Benefício Livre (VGBL) I - ha risco de deficit atuarial no período de acumulação. Il - o participante pode complementar a renda recebida no plano de previdência oficial, sem limite máximo para abatimento de seus rendimentos tributáveis, na Declaração Anual do Imposto de Renda da pessoa física. Ill - a dedução das contribuições na Declaração de Ajuste Anual do Imposto de Renda da pessoa física nesse tipo de plano de previdência complementar não possui limite máximo. Está correto o que se afirma em:`,
+    options: { A:"I apenas.", B:"II apenas.", C:"I, II e III.", D:"I e II apenas." },
+    answer: "A",
+    explain: "No VGBL não há dedução de contribuições no IR"
+  },
+  {
+    id: "Q49 – Média x Mediana x Moda",
+    text: `Durante a avaliação da performance de um fundo de ações em um período de 20 pregões, surgiram dúvidas acerca de como sintetizar de forma mais representativa os valores de rentabilidade diária observados. Taís Oliveira defendeu a utilização da média, Mariana Tavares prefere a mediana, alegando que algumas variações extremas observadas na amostra teriam afetado o comportamento geral. Carlos Moreira argumentou que a moda seria útil para identificar o retorno mais recorrente ao longo dos dias. A escolha mais adequada da medida de posição central nesse contexto decorre principalmente do fato de`,
+    options: { A:"a mediana não sofrer forte influência de valores muito elevados ou muito baixos, conferindo robustez em distribuições assimétricas.", B:"a mediana ficar invariavelmente próxima ao valor médio das observações, não havendo grande diferença entre ambas em distribuições com muitos outliers.", C:"a moda ser o indicador que melhor sintetiza o comportamento dos dados, pois sempre corresponde ao pico de frequências", D:"a média ser menos sensível aos outliers, oferecendo o valor que melhor reflete a maior parte das observações." },
+    answer: "A",
+    explain: "A mediana é robusta a outliers e assimetrias; média e moda podem distorcer."
+  },
+  {
+    id: "Q50 – CAPM",
+    text: `Um título do tesouro, de um ano de prazo de vencimento, está sendo negociado a 8,00% a.a. Um especialista em investimento estima o retorno do mercado de ações em 20,00% para o mesmo prazo. Uma carteira de ações com beta igual a 0,8 deve ter retorno projetado, para o mesmo período de tempo, de`,
+    options: { A:"20,00% a.a.", B:"12,00% a.a.", C:"12,80% a.a.", D:"17,60% a.a." },
+    answer: "D",
+    explain: "CAPM: R = Rf + β (Rm − Rf) = 8% + 0,8×(20−8)= 17,6% a.a."
+  },
+  {
+    id: "Q55 – Basileia no Brasil",
+    text: `Durante uma conferência internacional sobre regulação bancária realizada em Brasília, discutia-se como a implementação dos Acordos de Basileia no Brasil apresentou características particulares em comparação com outros países emergentes. O debate focava especialmente em como o Banco Central do Brasil adotou medidas mais conservadoras que as recomendações internacionais em diversos aspectos, e como isso impactou o sistema financeiro nacional durante diferentes ciclos econômicos. Uma análise histórica mostrou como os bancos brasileiros reagiran às mudanças regulatórias desde Basileia I até Basileia III, especialmente durante períodos de estresse financeiro global. Considerando a evolução da implementação dos Acordos de Basileia no Brasil e suas consequências para o sistema financeiro nacional, a caracteristica que melhor diferencia a abordagem regulatória brasileira em relação aos padrões internacionais:`,
+    options: { A:"o modelo regulatório nacional priorizou a competitividade internacional dos bancos brasileiros, flexibilizando temporariamente os requerimentos de capital durante crises sistêmicas para manter o fluxo de crédito.", B:"a regulação brasileira estabeleceu requerimentos mais conservadores, incluindo níveis mínimos de capital superiores aos padrões internacionais e tratamento mais restritivo para ativos de maior risco, contribuindo para maior resiliência do sistema.", C:"os reguladores locais focaram exclusivamente nos aspectos quantitativos de Basileia Ill, dispensando a implementação dos pilares qualitativos de supervisão e disciplina de mercado por serem considerados inadequados ao contexto brasileiro.", D:"o Brasil adotou exigências de capital menos restritivas que as recomendações internacionais para compensar o maior custo de capital no mercado local, permitindo maior alavancagem dos bancos em períodos de crescimento econômico." },
+    answer: "B",
+    explain: "Historicamente o Brasil adotou postura mais conservadora, com colchões de capital mais altos e regras mais restritivas para riscos."
+  },
+  {
+    id: "Q57 – CAPM",
+    text: `Com base no Capital Asset Pricing Model (CAPM), a empresa A possui custo de capital próprio estimado em 15,00% ao ano e, a empresa B, er 12,00% ao ano. Considerando tanto o retorno do ativo livre de risco quanto o prêmio pelo risco de mercado de 5,00% ao ano, o coeficiente bi das empresas A e B, respectivamente, são`,
+    options: { A:"2,00 e 1,40", B:"1,50 е 1,20", C:"1,25 e 1,00", D:"3,00 e 2,40" },
+    answer: "A",
+    explain: "..."
+  },
+  {
+    id: "Q61 – Finanças comportamentais",
+    text: `Um levantamento interno de uma corretora evidenciou que diversos investidores encerram suas posições em ações logo após registrarem pequenos ganhos (entre +5% e +15%), mas preferem manter papéis que acumulam perdas significativas (de -30% a -50%), na esperança de uma recuperação futura. Ao serem entrevistados, relataram sentir maior "dor" diante da possibilidade de vender com prejuízo do que "prazer" ao realizar um lucro, repetindo esse padrão de comportamento independentemente do ciclo de mercado. O comportamento observado caracteriza`,
+    options: { A:"racionalidade nas decisões de investimento, maximizando retorno esperado independente do resultado acumulado.", B:" estratégia de investimento que prioriza carregamento de posições até o horizonte final planejado.", C:"armadilha da confirmação, manifestada na busca por informações que justifiquem manter posições ganhadoras.", D:"aversão à perda, evidenciada pela realização prematura de ganhos e manutenção prolongada de posições perdedoras." },
+    answer: "D",
+    explain: "Perder dói mais que ganhar: aversão à perda leva a realizar ganhos cedo e segurar perdas."
+  },
+  {
+    id: "Q65 – Planejamento orçamentário famílias",
+    text: `Ruy Alencar, consultor financeiro, está analisando os perfis de três famílias com diferentes situações patrimoniais e níveis de controle orçamentário: Família 1 Renda mensal: R$ 30.000 Despesas mensais: R$ 28.000 Dívidas acumuladas: R$ 200.000 Ausência de controle detalhado Família 2 Renda mensal: R$ 15.000 Despesas mensais: R$ 12.000 Investimentos atuais: R$ 100.000 Controle financeiro parcial Família 3 Renda mensal: R$ 45.000 Despesas mensais: R$ 35.000 Patrimônio total: R$ 500.000 Controle financeiro parcial, diversas fontes de renda A abordagem mais eficaz para otimização orçamentária deve`,
+    options: { A:"ocar na redução de despesas da Família 1, desconsiderando aspectos de geração de renda.", B:"adotar um mesmo padrão de orçamento para todas as famílias, baseando-se nos valores e características da familia que possui maior patrimônio.", C:"priorizar investimentos da Familia 2, desconsiderando a necessidade de formar ou manter uma reserva de emergência.", D:"Implementar um sistema integrado de controle financeiro que considere fluxo de caixa , categorização de despesas e metas especificas para cada família, respeitando suas prioridades e capacidades de poupança" },
+    answer: "D",
+    explain: "Personalização por contexto, metas e fluxo de caixa é a melhor prática."
+  },
+  // === SIMULADO 7.0_2 ===
+  { id: "Q10", text:`10) Pedro Casara é analista-chefe de investimentos do fundo Omnia Capital, especializado em mercados emergentes. Durante uma reunião, sua equipe discute o cenário brasileiro. Recentemente houve um aumento significativo das reservas internacionais do país, impulsionado por um superávit comercial robusto e forte entrada de capital estrangeiro em investimentos de portfólio. Ele argumenta que esse aumento pode influenciar a taxa de câmbio e a atratividade do país para investidores, mas há divergências dentro da equipe. Assim, Pedro explica a seus analistas que o crescimento das reservas internacionais`, options:{
+    A:"A. não tem impacto sobre a taxa de câmbio nem sobre a atratividade do país para investidores, pois são apenas um reflexo contábil das operações externas.",
+    B:"B. pode fortalecer a confiança dos investidores estrangeiros, pois sinaliza maior capacidade do país de lidar com choques externos, o que pode atrair mais capital e contribuir para a apreciação da moeda brasileira.",
+    C:"C. reduz a liquidez do mercado doméstico, tornando o crédito mais caro e desincentivando o investimento estrangeiro no país.",
+    D:"D. tende a depreciar a moeda, pois indica que o Banco Central está intervindo agressivamente no mercado de câmbio, reduzindo a entrada de capitais especulativos."
+  }, answer:"B", explain:"" },
+
+  { id: "Q18", text:`18) O Tesouro Norte-Americano realizará um leilão de títulos públicos. Os investidores que pretendam adquirir títulos do tipo zero cupom e títulos que os protejam de uma alta inflacionária deverão comprar, respectivamente,`, options:{
+    A:"A. T-Notes e T-Bonds.",
+    B:"B. T-Bills e T-Bonds.",
+    C:"C. T-Bills e TIPS.",
+    D:"D. T-Notes e TIPS."
+  }, answer:"C", explain:"" },
+
+  { id: "Q32", text:`32) Um investidor pretende elaborar uma estratégia de investimento com duas ações integrantes do Índice Bovespa, com o objetivo de aumentar o retorno esperado de sua carteira. Caso o investidor tenha utilizado a análise técnica, espera-se que suas decisões tenham sido influenciadas pela I. preço de suporte e resistência das ações. II. cálculo do preço da ação pelo modelo do valor presente dos dividendos. III. índice de força relativa das ações. Está correto o que se afirma apenas em`, options:{
+    A:"A. I e III.",
+    B:"B. I e II.",
+    C:"C. II e III.",
+    D:"D. II."
+  }, answer:"A", explain:"" },
+
+  { id: "Q37", text:`37) Nas operações com contratos derivativos negociados em bolsa de valores ou futuros, o especulador I. é desfavorável ao funcionamento do mercado, pois, não visa a realizar as operações para se proteger de volatilidade. II. assume riscos com a expectativa de ganhos no curto prazo. III. garante ganho imediato ao aproveitar diferentes preços de um mesmo ativo em diferentes mercados. IV. é relevante para o mercado, pois, provê a liquidez às operações. Está correto o que se afirma APENAS em`, options:{
+    A:"A. I, II e IV.",
+    B:"B. II e III.",
+    C:"C. II e IV.",
+    D:"D. I, II e III."
+  }, answer:"C", explain:"" },
+
+  { id: "Q41", text:`41) Gabriel é um consultor de investimentos desenvolvendo sua carteira de clientes. O senhor João Pedro, potencial cliente, gostaria de investir em fundos de investimentos, por meio de um fundo exclusivo, mas está reticente quanto ao papel dos prestadores de serviços em tais estruturas. Ele teme que, ao aportar recursos em um fundo de investimento, o administrador fiduciário e o gestor de recursos possam agir de modo prejudicial aos interesses do investidor e em benefício próprio. Para dirimir tal inquietação, Gabriel deve esclarecer que`, options:{
+    A:"A. o administrador fiduciário deve fiscalizar a atuação do gestor de recursos, assegurando ao cotista que não haja qualquer possibilidade de descumprimento de normas atinentes ao fundo de investimento e/ou a qualquer de suas classes.",
+    B:"B. o administrador fiduciário e o gestor podem livremente praticar atos de liberalidade com recursos dos fundos por eles administrados ou geridos, independentemente de qualquer previsão em regulamento.",
+    C:"C. compete ao cotista, em fundos exclusivos, realizar a fiscalização da atividade dos prestadores de serviços essenciais, que não podem ser responsabilizados, cível ou administrativamente, por qualquer descumprimento de norma que não tenha sido a eles notificado pelo cotista.",
+    D:"D. os prestadores de serviços devem exercer suas atividades buscando sempre as melhores condições para o fundo e suas classes de cotas, empregando o cuidado e a diligência que todo homem ativo e probo costuma dispensar à administração."
+  }, answer:"D", explain:"" },
+
+  { id: "Q42", text:`42) Segundo as Regras e Procedimentos de Administração e Gestão de Recursos de Terceiros da ANBIMA, para o Apreçamento dos veículos de investimento, I. as regras, procedimentos e metodologias utilizadas pelo Administrador Fiduciário no apreçamento dos ativos financeiros dos veículos de investimento, sob sua administração, deverão ser públicas. II. o Administrador Fiduciário deverá divulgar em seu site a versão completa do seu Manual de Apreçamento. III. as informações de preços ou fatores utilizados no Apreçamento de ativos financeiros deverão ser convertidos da moeda estrangeira para a moeda nacional, utilizando a taxa de câmbio referencial (D2), divulgada pela B3. Está correto o que se afirma em`, options:{
+    A:"A. I e III, apenas.",
+    B:"B. II e III, apenas.",
+    C:"C. I, II e III.",
+    D:"D. I e II, apenas."
+  }, answer:"A", explain:"" },
+
+  { id: "Q52", text:`52) O Fundo de Investimento Financeiro Alfa Beta Responsabilidade Limitada possui duas classes: a Classe Alfa Beta Renda Fixa Indexado DI e a Classe Alfa Beta Renda Fixa Crédito Privado. O gestor do fundo, a MG Asset Management, deseja alterar a política de investimento da Classe Alfa Beta Renda Fixa Indexado DI, de modo que esta classe possa investir também em ativos vinculados à inflação e não apenas vinculados à variação acumulada das taxas médias dos depósitos interfinanceiros, ou Taxa DI, como atualmente está previsto no anexo descritivo da classe. Ambas as classes são organizadas sob a forma de condomínio aberto, possuem subclasse única e são voltadas a investidores não qualificados (“varejo”). Desse modo, essa alteração`, options:{
+    A:"A. pode ser realizada em conjunto pelos prestadores de serviço essenciais sem a necessidade de assembleia geral ou especial de cotistas, pois não se trata de matéria de competência de assembleia de cotistas.",
+    B:"B. dependerá da assembleia especial com número de cotistas não limitado, e instalada de forma exclusivamente presencial.",
+    C:"C. deverá ser aprovada em assembleia geral de cotistas do Fundo, abrangendo ambas as classes, pois se trata de matéria de interesse do Fundo como um todo e não apenas de uma das classes.",
+    D:"D. da política de investimento da Classe depende de alteração do anexo descritivo da respectiva Classe o que demanda aprovação em assembleia especial de cotistas da classe, a ser convocada pelo próprio gestor."
+  }, answer:"D", explain:"" },
+
+  { id: "Q54", text:`54) O consultor de investimentos Cláudio Santos está atendendo um cliente de alto poder aquisitivo que investe atualmente apenas em títulos de renda fixa bancários e Tesouro Direto, mas quer começar a adquirir ativos com diferentes níveis de risco, inclusive de renda variável. Esse cliente ouviu rumores que os fundos de investimento são extremamente arriscados, pois envolveriam o empréstimo de dinheiro ao gestor do Fundo, que aplica em nome próprio os recursos captados dos investidores em ativos de alto risco. Nesse caso, o entendimento do cliente de Cláudio Santos`, options:{
+    A:"A está equivocado, pois, ainda que empreste o recurso investido ao gestor, o investidor terá a garantia de retorno previamente estabelecido em contrato.",
+    B:"B. é incorreto, pois a aplicação de recursos em fundos de investimento envolve a aquisição direta, pelo cotista, em seu próprio nome, dos ativos adquiridos por intermédio do gestor.",
+    C:"C. está equivocado, pois, ao aplicar recursos em um fundo de investimento, o investidor subscreve cotas representativas de fração ideal de um condomínio de natureza especial, que é gerido por um gestor de recursos de terceiros que não exerce a titularidade dos ativos.",
+    D:"D. é parcialmente correto, pois embora o gestor possa adquirir ativos de baixo risco com os recursos do fundo de investimento, esta aquisição é feita em nome do próprio gestor e não do fundo de investimento, de modo que o patrimônio do fundo de investimento se confunde com o patrimônio do gestor."
+  }, answer:"C", explain:"" },
+
+  { id: "Q62", text:`62) A TET Asset Management está estruturando um fundo de investimento financeiro para investidores não qualificados e deseja cobrar taxa de performance. Nesse sentido, a taxa de performance:`, options:{
+    A:"A. pode ser majorada por iniciativa do gestor, sem aprovação dos cotistas, desde que mantido o índice de referência.",
+    B:"B. destinada a investidores não qualificados é permitida e pode ser cobrada trimestralmente.",
+    C:"C. pode ser livremente fixada no regulamento ou no anexo descritivo da classe.",
+    D:"D. deve ser vinculada a um índice de referência verificável, sendo vedada a vinculação a percentuais inferiores a 100%."
+  }, answer:"D", explain:"" },
+
+  { id: "Q67", text:`67) Emiliano procurou Mario, seu amigo e consultor de valores mobiliários, e lhe disse que queria fazer o mesmo tipo de "aplicação de risco" que se primo fez, porque esse primo "se deu bem". Antes de realizar a aplicação solicitada, Mario apurou que as informações relativas ao perfil de Emiliano estavam desatualizadas e que ele, algumas vezes, revelava forte intolerância a perdas financeiras, ainda que temporárias. Mario tentou dissuadir Emiliano de fazer essa aplicação, mas Emiliano, mesmo sem nunca ter feito uma aplicação como essa, ordenou que ela fosse feita. Diante de tais circunstâncias, Mario deverá`, options:{
+    A:"A alertar Emiliano acerca da desatualização e da inadequação do seu perfil, indicando as causas da divergência, mas alertando que essas exigências podem ser legalmente contornadas se a aplicação for feita por meio de aplicativo (app) da instituição financeira.",
+    B:"B. alertar Emiliano, antes da primeira operação com a categoria de valor mobiliário, acerca da desatualização e da inadequação do seu perfil, indicando as causas da divergência e obtendo declaração expressa de Emiliano de que está ciente desses fatos.",
+    C:"C. se recusar a atender à determinação dada por Emiliano, mas deverá informá-lo de que a referida operação poderá ser feita, sem qualquer tipo de restrição, por meio de aplicativo (app) próprio da instituição financeira, ou por meio de site na internet.",
+    D:"D. se recusar a atender à determinação dada por Emiliano, mas deverá informá-lo de que a referida operação poderá ser feita, sem qualquer tipo de restrição, por meio de aplicativo (app) próprio da instituição financeira, apenas, e mediante o uso de token."
+  }, answer:"B", explain:"" },
+
+  {
+    id: "Q70",
+    text:`70) Um indivíduo contratou um especialista em investimento para elaborar um planejamento financeiro de sua família baseado no processo definido pela Associação Brasileira de Planejadores Financeiros (PLANEJAR). Esse especialista, na fase "coleta das informações", deverá:
+
+I. definir a responsabilidade de ambos (planejador e cliente) durante o trabalho.
+
+II. identificar eventuais problemas de saúde desse indivíduo.
+
+III. identificar se as relações familiares podem dificultar as estratégias de planejamento sucessório.
+
+Está correto o que se afirma em`,
+    options:{
+      A:"A. I e III, apenas.",
+      B:"B. I e II, apenas.",
+      C:"C. I,II e III.",
+      D:"D. II e III, apenas."
+    },
+    answer:"D",
+    explain:""
+  },
+];
+
+// ===== Banco inicial: tenta carregar do localStorage; se não houver, coloca stub =====
 let questions = [];
+try{
+  const pre = localStorage.getItem(LS_KEY);
+  if(pre){ const arr = JSON.parse(pre); if(Array.isArray(arr)) questions = arr; normalizeActive(); }
+}catch(e){}
+if(!questions.length){ questions = EMBEDDED_FROM_V18; }
+
+// ===== Estado do simulador =====
 let order = [];
-let pos = 0;
-let wrongSet = new Set();
-let reviewMode = false;
+let idx = 0, score = 0, tries = 0;
+let wrongQueue = new Set();
+let locked = false;
+let idxMap = new Map();
 
-// === UI elements ===
-const qid = document.getElementById('qid');
-const qtext = document.getElementById('qtext');
-const opts = document.getElementById('opts');
-const statusEl = document.getElementById('status');
-const bar = document.getElementById('bar');
-const pillInfo = document.getElementById('pillInfo');
-
-function normalize(data){
-  return (Array.isArray(data)?data:[]).map((q,idx)=>({
-    active: ('active' in q) ? !!q.active : true,
-    id: q.id || 'Q'+(idx+1),
-    text: q.text || '',
-    options: q.options || {A:'',B:'',C:'',D:''},
-    answer: (q.answer||'').toUpperCase(),
-    explain: q.explain || ''
-  })).filter(q=>q.active);
+function normalizeActive(){
+  questions = questions.map(q=>({active:true, ...q}));
 }
-
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j = Math.floor(Math.random()*(i+1));
-    [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
-}
-
-function render(){
-  if(!order.length){
-    qid.textContent = '—';
-    qtext.textContent = 'Sem questões embutidas.';
-    opts.innerHTML='';
-    statusEl.textContent='';
-    pillInfo.textContent='0/0';
-    bar.style.width = '0%';
+function computeOrder(forceReset=false){
+  ensureUIDs();
+  idxMap = buildIndexMap();
+  const activeUIDs = Array.from(idxMap.keys());
+  if(activeUIDs.length===0){
+    order = []; idx = 0; score = 0; tries = 0; wrongQueue.clear();
     return;
   }
-  const i = order[pos];
-  const q = questions[i];
-  qid.textContent = q.id + (q.answer?`  •  Gabarito: ${q.answer}`:'');
-  qtext.textContent = q.text;
-
-  opts.innerHTML = '';
-  ['A','B','C','D'].forEach(letter=>{
-    const row = document.createElement('label');
-    row.className='opt';
-    const input = document.createElement('input');
-    input.type='radio'; input.name='opt'; input.value=letter;
-    input.addEventListener('change', ()=>check(letter));
-    const tag = document.createElement('div');
-    tag.className='letter'; tag.textContent = letter + '.';
-    const span = document.createElement('div');
-    span.className='txt'; span.textContent = (q.options && q.options[letter]) ? q.options[letter] : '';
-    row.appendChild(input); row.appendChild(tag); row.appendChild(span);
-    opts.appendChild(row);
-  });
-
-  statusEl.textContent = reviewMode ? 'Revisão' : '';
-  pillInfo.textContent = (pos+1)+'/'+order.length;
-  const progress = ((pos+1)/order.length)*100;
-  bar.style.width = progress.toFixed(1)+'%';
+  order = shuffle(activeUIDs);
+  idx = 0; score = 0; tries = 0; wrongQueue.clear();
 }
 
-function next(){ if(order.length){ pos=(pos+1)%order.length; render(); } }
-function prev(){ if(order.length){ pos=(pos-1+order.length)%order.length; render(); } }
 
-function check(letter){
-  const q = questions[order[pos]];
-  const rows = [...document.querySelectorAll('.opt')];
-  rows.forEach(r=>r.classList.remove('correct','wrong'));
-  if(!q.answer){ statusEl.textContent='Sem gabarito.'; return; }
-  if(letter===q.answer){
-    statusEl.textContent='Correto!';
-    rows[['A','B','C','D'].indexOf(letter)].classList.add('correct');
-    wrongSet.delete(order[pos]);
-  } else {
-    statusEl.textContent='Errado.';
-    rows[['A','B','C','D'].indexOf(letter)].classList.add('wrong');
-    wrongSet.add(order[pos]);
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; }
+function renderCounter(){
+  $('#cQ').textContent = (order.length? (idx+1):0)+"/"+order.length;
+  $('#cS').textContent = "Pontuação: "+score;
+  $('#cT').textContent = "Tentativas: "+tries;
+  const pct = Math.floor((score/questions.length)*100);
+  $('#bar').style.width = pct+"%";
+}
+function renderQuestion(){
+  locked = false;
+  if(!order.length){ $('#qid').textContent=''; $('#qtext').textContent='Nenhuma questão ativa. Vá em “Adicionar/Revisão” → marque “ativa” ou clique “Ativar todas”.'; $('#opts').innerHTML=''; renderCounter(); return; }
+  idxMap = buildIndexMap();
+  const uid = order[idx];
+  const i = idxMap.get(uid);
+  if(i===undefined){ // se a questão saiu/ficou inativa, pule
+    next(); return;
+  }
+  const q = questions[i];
+  $('#qid').textContent = q.id || ("Q"+(order[idx]+1));
+  $('#qtext').textContent = q.text || "";
+  const box = $('#opts'); box.innerHTML = "";
+  ["A","B","C","D"].forEach(L=>{
+    const el = document.createElement('label');
+    el.className = 'opt'; el.dataset.letter = L;
+    el.innerHTML = `<input type="radio" name="opt" value="${L}"><span class="letter">${L})</span><span class="txt">${q.options?.[L]||""}</span>`;
+    el.addEventListener('click', ()=>{
+      if(locked) return;
+      if($('#rev').checked){ // prévia literal
+        previewLiteral(q);
+        return;
+      }
+      const v = L;
+      tries++; locked = true;
+      const ok = v === q.answer;
+      el.classList.add(ok ? 'correct' : 'wrong');
+      setTimeout(()=>{
+        if(ok){ score++; }
+        else{ wrongQueue.add(order[idx]); }
+        next();
+      }, 350);
+      renderCounter();
+    });
+    box.appendChild(el);
+  });
+  renderCounter();
+}
+function next(){
+  if(idx < order.length-1){ idx++; renderQuestion(); return; }
+  // fim do ciclo: se houve erros, repetir só os errados
+  if(wrongQueue.size){
+    // mantém apenas UIDs que ainda existem e estão ativas
+    idxMap = buildIndexMap();
+    const filtered = Array.from(wrongQueue).filter(uid=>idxMap.has(uid));
+    order = shuffle(filtered.length ? filtered : []);
+    idx = 0; score = 0; tries = 0; wrongQueue.clear();
+    renderQuestion(); return;
   }
 }
-
-function reveal(){
-  const q = questions[order[pos]];
-  statusEl.textContent = q.answer ? ('Gabarito: '+q.answer) : 'Sem gabarito.';
+function previewLiteral(q){
+  const p = $('#preview'); const b = $('#previewBox');
+  p.style.display = 'block';
+  b.innerHTML = "";
+  const t = document.createElement('div'); t.className='qtext'; t.textContent = q.text || ""; b.appendChild(t);
+  ["A","B","C","D"].forEach(L=>{
+    const d=document.createElement('div'); d.className='opt';
+    d.innerHTML=`<span class="letter">${L})</span><span class="txt">${q.options?.[L]||''}</span>`;
+    if(q.answer===L) d.classList.add('correct');
+    b.appendChild(d);
+  });
+  if(q.explain){ const e = document.createElement('div'); e.className='small'; e.textContent = "Obs: "+q.explain; b.appendChild(e); }
 }
 
-function markWrong(){
-  wrongSet.add(order[pos]);
-  statusEl.textContent = 'Marcada para revisão.';
+// ===== Adicionar / Revisão =====
+let editIndex = null;
+function clearForm(){ ['id','text','A','B','C','D','explain'].forEach(s=>{ const el=$('#f-'+s); if(el) el.value=''; }); $('#f-ans').value='A'; $('#preview').style.display='none'; }
+function loadToForm(q){ $('#f-id').value=q.id||''; $('#f-text').value=q.text||''; $('#f-A').value=q.options?.A||''; $('#f-B').value=q.options?.B||''; $('#f-C').value=q.options?.C||''; $('#f-D').value=q.options?.D||''; $('#f-ans').value=q.answer||'A'; $('#f-explain').value=q.explain||''; }
+function setEditMode(on){ editIndex = on ? editIndex : null; $('#approveBtn').textContent = on ? 'Salvar edição' : 'Aprovar & Inserir'; $('#clearBtn').textContent = on ? 'Cancelar edição' : 'Limpar'; }
+function renderBankList(){
+  const box=$('#bankList'); if(!box) return; box.innerHTML='';
+  questions.forEach((q,i)=>{
+    const row=document.createElement('div'); row.className='rowline';
+    row.innerHTML=`<div class="meta">${q.id||'(sem id)'} — gabarito: <strong>${q.answer||'?'}</strong></div>`;
+    const bWrap=document.createElement('div');
+    const bEd=document.createElement('button'); bEd.className='btn'; bEd.textContent='Editar';
+    bEd.onclick=()=>{ editIndex=i; loadToForm(q); setEditMode(true); document.querySelector('[data-tab="add"]').click(); };
+    const bDel=document.createElement('button'); bDel.className='btn'; bDel.textContent='Excluir';
+    bDel.onclick=()=>{ if(confirm('Excluir esta questão?')){ const removedUID = questions[i]._uid; questions.splice(i,1);
+      wrongQueue.delete(removedUID);
+      computeOrder(true); renderQuestion(); renderCounter(); renderBankList(); saveToLocalSilently(); }};
+    bWrap.appendChild(bEd); bWrap.appendChild(bDel); row.appendChild(bWrap); box.appendChild(row);
+  });
 }
-
-function startReview(){
-  if(!wrongSet.size){ alert('Nenhuma questão marcada ou errada para revisar.'); return; }
-  order = Array.from(wrongSet);
-  pos = 0; reviewMode = true;
-  render();
+$('#previewBtn').onclick=()=>{
+  const q = collectForm();
+  $('#preview').style.display='block'; previewLiteral(q);
+};
+function collectForm(){
+  return {
+    active:true,
+    id: $('#f-id').value.trim(),
+    text: $('#f-text').value,
+    options: {A:$('#f-A').value,B:$('#f-B').value,C:$('#f-C').value,D:$('#f-D').value},
+    answer: $('#f-ans').value,
+    explain: $('#f-explain').value
+  };
 }
+$('#approveBtn').onclick=()=>{
+  const q = collectForm();
+  if(editIndex!==null){ if(!questions[editIndex]._uid) questions[editIndex]._uid = makeUID(); questions[editIndex]=Object.assign({ _uid: questions[editIndex]._uid }, q); setEditMode(false); editIndex=null; }
+  else{ q._uid = makeUID(); questions.push(q); }
+  computeOrder(true);
+  renderQuestion(); renderCounter(); renderBankList(); clearForm(); saveToLocalSilently();
+  alert('Questão salva no banco atual. (Já gravei no navegador)');
+};
+$('#clearBtn').onclick=()=>{ if(editIndex!==null){ setEditMode(false); editIndex=null; } clearForm(); };
 
-// Eventos
-document.getElementById('btnNext').onclick = next;
-document.getElementById('btnPrev').onclick = prev;
-document.getElementById('btnReveal').onclick = reveal;
-document.getElementById('btnMarkWrong').onclick = markWrong;
-document.getElementById('btnReview').onclick = startReview;
+// ===== Exportar / Importar + Persistência =====
+function copyExport(){
+  const txt = JSON.stringify(questions, null, 2);
+  $('#exportArea').value = txt;
+  navigator.clipboard?.writeText(txt);
+  alert('JSON copiado para a área de transferência.');
+}
+$('#exportBtn').onclick = copyExport;
 
-// Inicialização
-questions = normalize(QUESTIONS);
-order = shuffle(questions.map((_,i)=>i));
-render();
+function downloadJSON(){
+  const blob = new Blob([JSON.stringify(questions, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download='CEA_questoes.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+$('#downloadBtn').onclick = downloadJSON;
+
+function saveToLocal(){
+  localStorage.setItem(LS_KEY, JSON.stringify(questions));
+  alert('Banco salvo no navegador (persiste após fechar).');
+}
+function saveToLocalSilently(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(questions)); }catch(e){} }
+$('#saveLocalBtn').onclick = saveToLocal;
+
+$('#importBtn').onclick=()=>{
+  try{
+    const arr = JSON.parse($('#importArea').value||'[]');
+    if(!Array.isArray(arr)) throw new Error('JSON precisa ser um array.');
+    questions = arr; normalizeActive(); ensureUIDs(); computeOrder(true);
+    renderQuestion(); renderCounter(); renderBankList(); saveToLocalSilently();
+    alert('Importado do texto com sucesso. (Já gravei no navegador)');
+  }catch(e){ alert('Erro ao importar: '+e.message); }
+};
+$('#fileInput').addEventListener('change', (e)=>{
+  const f = e.target.files?.[0]; if(!f) return;
+  const r = new FileReader();
+  r.onload = ()=>{
+    try{
+      const arr = JSON.parse(r.result);
+      if(!Array.isArray(arr)) throw new Error('O arquivo deve conter um array JSON.');
+      questions = arr; normalizeActive(); ensureUIDs(); computeOrder(true);
+      renderQuestion(); renderCounter(); renderBankList(); saveToLocalSilently();
+      alert('Arquivo importado! (Já gravei no navegador)');
+    }catch(err){ alert('Erro: '+err.message); }
+  };
+  r.readAsText(f,'utf-8');
+});
+$('#loadLocalBtn').onclick=()=>{
+  const raw = localStorage.getItem(LS_KEY);
+  if(!raw){ alert('Nenhum banco salvo no navegador.'); return; }
+  try{
+    const arr = JSON.parse(raw);
+    if(!Array.isArray(arr)) throw new Error('Conteúdo inválido.');
+    questions = arr; normalizeActive(); ensureUIDs(); computeOrder(true);
+    renderQuestion(); renderCounter(); renderBankList();
+    $('#importArea').value = JSON.stringify(questions,null,2);
+    alert('Banco carregado do navegador!');
+  }catch(e){ alert('Erro ao carregar: '+e.message); }
+};
+$('#clearLocalBtn').onclick=()=>{ localStorage.removeItem(LS_KEY); alert('Banco local removido do navegador.'); };
+
+// ===== Tabs =====
+document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tab').forEach(x=>x.removeAttribute('aria-current'));
+  b.setAttribute('aria-current','true');
+  ['sim','add','io'].forEach(k=>$('#panel-'+k).style.display='none');
+  $('#panel-'+b.dataset.tab).style.display='block';
+  if(b.dataset.tab==='io'){ // mostra JSON ao abrir a aba
+    $('#exportArea').value = JSON.stringify(questions, null, 2);
+  }
+}));
+
+// ===== Inicializar =====
+normalizeActive();
+computeOrder();
+ensureUIDs();
+renderQuestion();
+renderCounter();
+renderBankList();
+$('#enableAllBtn').onclick=()=>{ questions.forEach(q=>q.active=true); computeOrder(true); renderQuestion(); renderCounter(); renderBankList(); saveToLocalSilently(); };
+$('#disableAllBtn').onclick=()=>{ questions.forEach(q=>q.active=false); computeOrder(true); renderQuestion(); renderCounter(); renderBankList(); saveToLocalSilently(); };
 </script>
 </body>
 </html>
